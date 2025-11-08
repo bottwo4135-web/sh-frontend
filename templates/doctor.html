@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="dashboard">
+  <aside class="sidebar">
+    <div class="profile">
+      <img class="avatar" src="{{ url_for('static', filename=user['avatar']) if user['avatar'] else 'https://i.pravatar.cc/100?img=12' }}" alt="avatar">
+      <div>
+        <div class="name">Dr. {{ user['name'] }}</div>
+        <div class="muted">{{ user['specialty'] or 'General' }}</div>
+      </div>
+    </div>
+    <div class="availability">
+      <h4>Availability</h4>
+      <label class="switch">
+        <input type="checkbox" id="availableToggle" {% if user['availability'] %}checked{% endif %}>
+        <span class="slider"></span>
+      </label>
+      <label>Free at
+        <input type="time" id="freeAt" value="{{ user['free_at'] or '' }}">
+      </label>
+      <button class="btn secondary" id="saveAvailability">Save</button>
+    </div>
+    <a class="btn ghost" href="{{ url_for('logout') }}">Logout</a>
+  </aside>
+
+  <section class="content">
+    <h2>Your Chats</h2>
+    <div class="chat-list">
+      {% if chats %}
+        {% for c in chats %}
+        <a class="chat-item" href="{{ url_for('chat_room', other_id=c['patient_id']) }}">
+          <img class="avatar" src="{{ url_for('static', filename=c['patient_avatar']) if c['patient_avatar'] else 'https://i.pravatar.cc/100?img=5' }}" />
+          <div class="details">
+            <div class="name">{{ c['patient_name'] }}</div>
+            <div class="muted">Started {{ c['created_at'] }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="muted">No chats yet. Patients will appear here.</div>
+      {% endif %}
+    </div>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const BASE_URL = 'https://shs-backend-ktg8.onrender.com';
+  // Save availability
+  document.getElementById('saveAvailability').addEventListener('click', async () => {
+    const available = document.getElementById('availableToggle').checked;
+    const freeAt = document.getElementById('freeAt').value;
+    const form = new FormData();
+    form.append('available', available);
+    form.append('free_at', freeAt);
+    const res = await fetch(`${BASE_URL}/doctor/availability`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!data.ok) alert('Failed to save');
+  });
+</script>
+{% endblock %}

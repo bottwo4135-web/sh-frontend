@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="auth-card slide-up">
+  <h2>Login</h2>
+  <form class="form" method="post">
+    <label>Email
+      <input type="email" required name="email" placeholder="you@example.com" />
+    </label>
+    <label>Password
+      <input type="password" required name="password" placeholder="••••••••" />
+    </label>
+    <button class="btn primary w-100" type="submit">Login</button>
+  </form>
+  <div class="muted">New here? <a href="/">Create an account</a></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const BASE_URL = 'https://shs-backend-ktg8.onrender.com';
+  document.querySelector('.form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const res = await fetch(`${BASE_URL}/login`, { method: 'POST', body: formData });
+    if (res.ok) {
+      // Redirect to dashboard (role detection should be handled by backend response)
+      window.location.href = '/';
+    } else {
+      alert('Login failed. Please check your credentials.');
+    }
+  });
+</script>
+{% endblock %}
