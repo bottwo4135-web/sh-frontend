@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+  </header>
+  <main>
+    <section class="auth-card slide-up">
+      <h2>Login</h2>
+      <form class="form">
+        <label>Email
+          <input type="email" required name="email" placeholder="you@example.com" />
+        </label>
+        <label>Password
+          <input type="password" required name="password" placeholder="••••••••" />
+        </label>
+        <button class="btn primary w-100" type="submit">Login</button>
+      </form>
+      <div class="muted">New here? <a href="signup.html">Create an account</a></div>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+  <script>
+    document.querySelector('.form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const res = await api.login(formData);
+      if (res.ok) {
+        window.location.href = 'index.html';
+      } else {
+        alert('Login failed. Please check your credentials.');
+      }
+    });
+  </script>
+</body>
+</html>

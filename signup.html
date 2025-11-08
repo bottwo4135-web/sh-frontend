@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signup - MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+  </header>
+  <main>
+    <section class="auth-card slide-up">
+      <h2>Create your account</h2>
+      <form class="form" enctype="multipart/form-data">
+        <div class="grid-2">
+          <label>Full name
+            <input required name="name" placeholder="Jane Doe" />
+          </label>
+          <label>Email
+            <input type="email" required name="email" placeholder="jane@example.com" />
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>Password
+            <input type="password" required name="password" placeholder="••••••••" />
+          </label>
+          <label id="specialtyWrap" class="hidden">Specialty
+            <input name="specialty" placeholder="Cardiology" />
+          </label>
+        </div>
+        <label>Profile picture
+          <input type="file" name="avatar" accept="image/*" />
+        </label>
+        <div class="grid-2">
+          <label>Role
+            <select id="roleSelect">
+              <option value="patient">Patient</option>
+              <option value="doctor">Doctor</option>
+            </select>
+          </label>
+          <div></div>
+        </div>
+        <button class="btn primary w-100" type="submit">Create account</button>
+      </form>
+      <div class="muted">Already have an account? <a href="login.html">Login</a></div>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+  <script>
+    // Prefill role from query
+    const params = new URLSearchParams(location.search);
+    const roleParam = params.get('role');
+    if (roleParam) document.getElementById('roleSelect').value = roleParam;
+    function updateSpecialty(){
+      const isDoc = document.getElementById('roleSelect').value === 'doctor';
+      document.getElementById('specialtyWrap').classList.toggle('hidden', !isDoc);
+    }
+    updateSpecialty();
+    document.getElementById('roleSelect').addEventListener('change', updateSpecialty);
+
+    document.querySelector('.form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const role = document.getElementById('roleSelect').value;
+      const res = await api.signup(role, formData);
+      if (res.ok) {
+        window.location.href = role === 'doctor' ? 'doctor.html' : 'patient.html';
+      } else {
+        alert('Signup failed. Please check your details.');
+      }
+    });
+  </script>
+</body>
+</html>

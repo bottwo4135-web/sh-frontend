@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Dashboard - MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+  </header>
+  <main>
+    <section class="dashboard">
+      <aside class="sidebar">
+        <div class="profile">
+          <img class="avatar" id="docAvatar" src="https://i.pravatar.cc/100?img=12" alt="avatar">
+          <div>
+            <div class="name" id="docName">Doctor</div>
+            <div class="muted" id="docSpecialty">General</div>
+          </div>
+        </div>
+        <div class="availability">
+          <h4>Availability</h4>
+          <label class="switch">
+            <input type="checkbox" id="availableToggle">
+            <span class="slider"></span>
+          </label>
+          <label>Free at
+            <input type="time" id="freeAt" value="">
+          </label>
+          <button class="btn secondary" id="saveAvailability">Save</button>
+        </div>
+        <a class="btn ghost" href="index.html">Logout</a>
+      </aside>
+
+      <section class="content">
+        <h2>Your Chats</h2>
+        <div class="chat-list" id="chatList">
+          <div class="muted">Loading...</div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+  <script>
+    // hydrate doctor dashboard from backend via main.js api
+    (async function(){
+      const me = await api.me();
+      if (!me || me.role !== 'doctor') { window.location.href = 'login.html'; return; }
+      document.getElementById('docName').textContent = 'Dr. ' + me.name;
+      document.getElementById('docSpecialty').textContent = me.specialty || 'General';
+      if (me.avatar) document.getElementById('docAvatar').src = me.avatar;
+      document.getElementById('availableToggle').checked = !!me.availability;
+      if (me.free_at) document.getElementById('freeAt').value = me.free_at;
+      // load chats
+      const chats = await api.myChats();
+      const list = document.getElementById('chatList');
+      list.innerHTML='';
+      if (!chats.length){ list.innerHTML = '<div class="muted">No chats yet. Patients will appear here.</div>'; }
+      chats.forEach(c => {
+        const a = document.createElement('a'); a.className='chat-item'; a.href = `chat.html?other_id=${c.patient_id}`;
+        a.innerHTML = `<img class="avatar" src="${c.patient_avatar||'https://i.pravatar.cc/100?img=5'}" />
+          <div class="details"><div class="name">${c.patient_name}</div><div class="muted">Started ${c.created_at}</div></div>`;
+        list.appendChild(a);
+      });
+    })();
+
+    document.getElementById('saveAvailability').addEventListener('click', async () => {
+      const available = document.getElementById('availableToggle').checked;
+      const freeAt = document.getElementById('freeAt').value;
+      const res = await api.setAvailability(available, freeAt);
+      if (!res.ok) alert('Failed to save');
+    });
+  </script>
+</body>
+</html>

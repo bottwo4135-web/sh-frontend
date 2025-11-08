@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat - MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+    <a class="btn ghost" href="index.html">Logout</a>
+  </header>
+  <main>
+    <section class="chat-page">
+      <aside class="sidebar">
+        <div class="profile">
+          <img class="avatar" id="meAvatar" src="https://i.pravatar.cc/100?img=2" alt="avatar">
+          <div>
+            <div class="name" id="meName">User</div>
+            <div class="muted" id="meRole">Role</div>
+          </div>
+        </div>
+        <a class="btn ghost" id="backLink" href="patient.html">← Back</a>
+      </aside>
+
+      <section class="chat-content">
+        <div class="chat-header">
+          <img class="avatar" id="otherAvatar" src="https://i.pravatar.cc/100?img=11" />
+          <div class="meta">
+            <div class="name" id="otherName">Other</div>
+            <div class="muted" id="otherMeta">Meta</div>
+          </div>
+        </div>
+
+        <div id="log" class="chat-log"></div>
+
+        <div class="composer">
+          <input id="composer" placeholder="Type a message..." />
+          <button id="send" class="btn primary">Send</button>
+          <button id="ask-ai" class="btn secondary">Ask AI</button>
+        </div>
+      </section>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const chatId = params.get('chat_id');
+    const otherId = params.get('other_id');
+    (async function(){
+      const me = await api.me();
+      if (!me) { location.href = 'login.html'; return; }
+      document.getElementById('meName').textContent = me.name;
+      document.getElementById('meRole').textContent = me.role.charAt(0).toUpperCase() + me.role.slice(1);
+      if (me.avatar) document.getElementById('meAvatar').src = me.avatar;
+      document.getElementById('backLink').href = me.role === 'patient' ? 'patient.html' : 'doctor.html';
+      const info = await api.chatInit(otherId);
+      document.getElementById('otherName').textContent = (info.other.role==='doctor' ? 'Dr. ' : '') + info.other.name;
+      document.getElementById('otherMeta').textContent = info.other.role==='doctor' ? (info.other.specialty||'General') : 'Patient';
+      if (info.other.avatar) document.getElementById('otherAvatar').src = info.other.avatar;
+      window.__chatId = info.chat_id;
+      (await api.getMessages(info.chat_id)).forEach(render);
+      poll();
+    })();
+
+    const log = document.getElementById('log');
+    const composer = document.getElementById('composer');
+    const sendBtn = document.getElementById('send');
+    const askAiBtn = document.getElementById('ask-ai');
+    const seen = new Set();
+    let lastTs = null;
+
+    function makeKey(msg){ return msg.id ? `id:${msg.id}` : `tmp:${msg.sender_id}:${msg.created_at}:${msg.message}`; }
+    function render(msg){
+      const key = makeKey(msg); if (seen.has(key)) return; seen.add(key);
+      const wrap = document.createElement('div'); wrap.className = 'msg ' + (msg.is_me ? 'me':'other');
+      const avatar = document.createElement('img'); avatar.className='avatar'; avatar.src = msg.avatar || 'https://i.pravatar.cc/60';
+      const bubble = document.createElement('div'); bubble.className='bubble';
+      const name = document.createElement('div'); name.className='name'; name.textContent = msg.name;
+      const text = document.createElement('div'); text.className='text'; text.textContent = msg.message;
+      const time = document.createElement('div'); time.className='time'; time.textContent = new Date(msg.created_at).toLocaleString();
+      bubble.appendChild(name); bubble.appendChild(text); bubble.appendChild(time);
+      wrap.appendChild(avatar); wrap.appendChild(bubble); log.appendChild(wrap); log.scrollTop = log.scrollHeight;
+      if (msg.id) lastTs = msg.created_at;
+    }
+
+    async function poll(){
+      try{
+        const data = await api.getMessages(window.__chatId, lastTs);
+        data.forEach(render);
+      }catch(e){}
+      setTimeout(poll, 1500);
+    }
+
+    async function send(){
+      const msg = composer.value.trim(); if(!msg) return; composer.value='';
+      render({ is_me: true, name: 'You', avatar: null, message: msg, created_at: new Date().toISOString() });
+      await api.sendMessage(window.__chatId, msg);
+    }
+    sendBtn.addEventListener('click', send);
+    composer.addEventListener('keypress', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
+
+    async function askAI(){
+      const msg = composer.value.trim(); if(!msg) return; composer.value='';
+      render({ is_me: true, name: 'You', avatar: null, message: msg, created_at: new Date().toISOString() });
+      const data = await api.askAI(msg);
+      render({ is_me: false, name: 'AI Assistant', avatar: 'https://i.pravatar.cc/60?img=5', message: data.reply||'AI unavailable', created_at: new Date().toISOString() });
+    }
+    askAiBtn.addEventListener('click', askAI);
+  </script>
+</body>
+</html>

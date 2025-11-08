@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Dashboard - MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+  </header>
+  <main>
+    <section class="dashboard">
+      <aside class="sidebar">
+        <div class="profile">
+          <img class="avatar" id="patAvatar" src="https://i.pravatar.cc/100?img=1" alt="avatar">
+          <div>
+            <div class="name" id="patName">Patient</div>
+            <div class="muted">Patient</div>
+          </div>
+        </div>
+        <a class="btn ghost" href="index.html">Logout</a>
+      </aside>
+
+      <section class="content">
+        <h2>Find a Doctor</h2>
+        <div class="filters">
+          <input id="search" placeholder="Search by name or specialty" />
+        </div>
+        <div class="doctor-list" id="doctorList">
+          <div class="muted">Loading...</div>
+        </div>
+
+        <button id="aiFab" class="fab pulse" title="Ask AI">🤖</button>
+
+        <div id="aiModal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>AI Health Assistant</h3>
+              <button id="aiClose" class="icon-btn">✖</button>
+            </div>
+            <div id="aiLog" class="ai-log"></div>
+            <div class="ai-input">
+              <input id="aiPrompt" placeholder="Describe your symptom or question..." />
+              <button id="aiSend" class="btn primary">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+  <script>
+    (async function(){
+      const me = await api.me();
+      if (!me || me.role !== 'patient') { window.location.href = 'login.html'; return; }
+      document.getElementById('patName').textContent = me.name;
+      if (me.avatar) document.getElementById('patAvatar').src = me.avatar;
+      const list = document.getElementById('doctorList');
+      const docs = await api.listDoctors();
+      list.innerHTML = '';
+      docs.forEach(d => {
+        const a = document.createElement('a'); a.className='doctor-card slide-up'; a.href = `chat.html?other_id=${d.id}`;
+        a.dataset.name = d.name.toLowerCase(); a.dataset.specialty = (d.specialty||'').toLowerCase();
+        a.innerHTML = `<img class="avatar xl" src="${d.avatar||'https://i.pravatar.cc/100?img=14'}" />
+          <div class="info"><div class="name">Dr. ${d.name}</div><div class="muted">${d.specialty||'General'}</div></div>
+          <div class="status ${d.availability? 'online':'offline'}">${d.availability? 'Available':'Unavailable'} ${d.free_at? `<span class='muted'> • free at ${d.free_at}</span>`:''}</div>`;
+        list.appendChild(a);
+      });
+      // Filter
+      const search = document.getElementById('search');
+      search.addEventListener('input', () => {
+        const q = search.value.toLowerCase();
+        document.querySelectorAll('#doctorList .doctor-card').forEach(el => {
+          const match = el.dataset.name.includes(q) || el.dataset.specialty.includes(q);
+          el.style.display = match ? '' : 'none';
+        });
+      });
+    })();
+
+    // AI modal behavior
+    const aiFab = document.getElementById('aiFab');
+    const aiModal = document.getElementById('aiModal');
+    const aiClose = document.getElementById('aiClose');
+    const aiLog = document.getElementById('aiLog');
+    const aiPrompt = document.getElementById('aiPrompt');
+    const aiSend = document.getElementById('aiSend');
+
+    function appendAI(role, text){
+      const wrap = document.createElement('div');
+      wrap.className = 'ai-msg ' + role;
+      wrap.textContent = text;
+      aiLog.appendChild(wrap);
+      aiLog.scrollTop = aiLog.scrollHeight;
+    }
+
+    aiFab.addEventListener('click', ()=> aiModal.classList.remove('hidden'));
+    aiClose.addEventListener('click', ()=> aiModal.classList.add('hidden'));
+    aiSend.addEventListener('click', async () => {
+      const msg = aiPrompt.value.trim();
+      if(!msg) return;
+      appendAI('user', msg);
+      aiPrompt.value = '';
+      appendAI('ai', 'Thinking...');
+      const last = aiLog.lastChild;
+      const data = await api.askAI(msg);
+      last.textContent = data.reply;
+    });
+  </script>
+</body>
+</html>

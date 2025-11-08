@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2966/2966327.png">
+</head>
+<body class="themed">
+  <header class="topbar">
+    <a class="brand" href="/">MediBridge</a>
+    <nav>
+      <a href="login.html">Login</a>
+    </nav>
+  </header>
+  <main>
+  <section class="hero">
+    <div class="hero-content">
+      <h1 class="fade-in">Connecting Patients and Doctors, Seamlessly.</h1>
+      <p class="fade-in delay-1">Secure chat, availability, and virtual assistance — all in one place.</p>
+      <div class="cta fade-in delay-2">
+        <a class="btn primary" href="signup.html?role=patient">Sign up as Patient</a>
+        <a class="btn secondary" href="signup.html?role=doctor">Sign up as Doctor</a>
+        <a class="btn ghost" href="login.html">Login</a>
+      </div>
+    </div>
+    <div class="hero-illustration float">
+      <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1200&auto=format&fit=crop" alt="hospital"/>
+    </div>
+  </section>
+  <section class="features">
+    <div class="feature-card slide-up">
+      <h3>Real-time Chat</h3>
+      <p>Stay connected with your healthcare providers using continuous updates.</p>
+    </div>
+    <div class="feature-card slide-up delay-1">
+      <h3>Doctor Availability</h3>
+      <p>View availability and book the best time to chat.</p>
+    </div>
+    <div class="feature-card slide-up delay-2">
+      <h3>AI Health Assistant</h3>
+      <p>Get general health guidance instantly from our AI assistant.</p>
+    </div>
+  </section>
+  </main>
+  <footer class="footer">
+    <div>© <span id="year"></span> MediBridge Hospital</div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="main.js"></script>
+</body>
+</html>
