@@ -1,10 +1,7 @@
-// Generic helpers and backend API client wired to Render backend
+// Generic helpers and backend API client wired to Render backend (TOKEN-BASED AUTH)
 (function(){
-  // Intersection-based reveal for animations
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){ e.target.style.visibility = 'visible'; }
-    });
+    entries.forEach(e => { if(e.isIntersecting){ e.target.style.visibility = 'visible'; } });
   }, { threshold: 0.1 });
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.fade-in, .slide-up').forEach(el => {
@@ -16,52 +13,48 @@
 // Ensure global api holder exists
 window.api = window.api || {};
 
-// Centralized API client
+// Token storage helpers
+const TOKEN_KEY = 'mb_token';
+const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
+const getToken = () => localStorage.getItem(TOKEN_KEY);
+const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+const authHeaders = () => (getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {});
+
+// Centralized API client (token-based)
 window.api = (() => {
   const BASE = 'https://shs-backend-ktg8.onrender.com';
-  const safeJson = async (res) => {
-    try { return await res.json(); } catch { return { ok: res.ok, status: res.status }; }
-  };
+  const safeJson = async (res) => { try { return await res.json(); } catch { return { ok: res.ok, status: res.status }; } };
   const get = async (url) => {
     try {
-      const res = await fetch(BASE + url, { credentials: 'include' });
+      const res = await fetch(BASE + url, { headers: { ...authHeaders() } });
       const ct = res.headers.get('content-type')||'';
       if (!res.ok) return { ok: false, status: res.status };
       if (ct.includes('application/json')) return await res.json();
       return { ok: true, data: await res.text() };
-    } catch (e) {
-      return { ok: false, error: String(e) };
-    }
+    } catch (e) { return { ok: false, error: String(e) }; }
   };
   const postForm = async (url, formData) => {
     try {
-      const res = await fetch(BASE + url, { method: 'POST', body: formData, credentials: 'include' });
+      const res = await fetch(BASE + url, { method: 'POST', body: formData, headers: { ...authHeaders() } });
       return await safeJson(res);
-    } catch (e) {
-      return { ok: false, error: String(e) };
-    }
+    } catch (e) { return { ok: false, error: String(e) }; }
   };
   const postJSON = async (url, body) => {
     try {
-      const res = await fetch(BASE + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' });
+      const res = await fetch(BASE + url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body) });
       return await safeJson(res);
-    } catch (e) {
-      return { ok: false, error: String(e) };
-    }
+    } catch (e) { return { ok: false, error: String(e) }; }
   };
 
   return {
     // auth
-    login: (formData) => postForm('/login', formData),
-    signup: (role, formData) => postForm(`/signup/${role}`, formData),
-    logout: () => get('/logout'),
+    login: async (formData) => { const res = await postForm('/login', formData); if (res && res.token) setToken(res.token); return res; },
+    signup: async (role, formData) => { const res = await postForm(`/signup/${role}`, formData); if (res && res.token) setToken(res.token); return res; },
+    logout: async () => { clearToken(); return { ok: true }; },
     me: () => get('/api/me'),
 
     // doctor
-    setAvailability: (available, free_at) => {
-      const fd = new FormData(); fd.append('available', String(!!available)); if (free_at) fd.append('free_at', free_at);
-      return postForm('/doctor/availability', fd);
-    },
+    setAvailability: (available, free_at) => { const fd = new FormData(); fd.append('available', String(!!available)); if (free_at) fd.append('free_at', free_at); return postForm('/doctor/availability', fd); },
     myChats: () => get('/api/my_chats'),
 
     // patient
@@ -79,16 +72,12 @@ window.api = (() => {
 
 const api = window.api;
 
-// Polyfill frontend shims if some endpoints are missing or unauthorized
+// Guest shim if not logged in
 (async function ensureShims(){
   try {
     const meResp = await api.me();
     if (meResp && meResp.role) return; // already a valid profile
-    if (meResp && meResp.ok === false) {
-      window.api.me = async () => ({ role: 'guest', name: 'Guest', avatar: '', availability: 0 });
-      return;
-    }
-    if (!meResp || !meResp.role) {
+    if (!meResp || meResp.ok === false || !meResp.role) {
       window.api.me = async () => ({ role: 'guest', name: 'Guest', avatar: '', availability: 0 });
     }
   } catch (e) {
