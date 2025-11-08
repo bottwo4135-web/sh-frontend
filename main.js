@@ -13,22 +13,41 @@
   });
 })();
 
+// Ensure global api holder exists
+window.api = window.api || {};
+
 // Centralized API client
-const api = (() => {
+window.api = (() => {
   const BASE = 'https://shs-backend-ktg8.onrender.com';
+  const safeJson = async (res) => {
+    try { return await res.json(); } catch { return { ok: res.ok, status: res.status }; }
+  };
   const get = async (url) => {
-    const res = await fetch(BASE + url, { credentials: 'include' });
-    const ct = res.headers.get('content-type')||'';
-    if (ct.includes('application/json')) return res.json();
-    return res.text();
+    try {
+      const res = await fetch(BASE + url, { credentials: 'include' });
+      const ct = res.headers.get('content-type')||'';
+      if (!res.ok) return { ok: false, status: res.status };
+      if (ct.includes('application/json')) return await res.json();
+      return { ok: true, data: await res.text() };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   };
   const postForm = async (url, formData) => {
-    const res = await fetch(BASE + url, { method: 'POST', body: formData, credentials: 'include' });
-    try { return await res.json(); } catch { return { ok: res.ok }; }
+    try {
+      const res = await fetch(BASE + url, { method: 'POST', body: formData, credentials: 'include' });
+      return await safeJson(res);
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   };
   const postJSON = async (url, body) => {
-    const res = await fetch(BASE + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' });
-    try { return await res.json(); } catch { return { ok: res.ok }; }
+    try {
+      const res = await fetch(BASE + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' });
+      return await safeJson(res);
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   };
 
   return {
@@ -36,7 +55,7 @@ const api = (() => {
     login: (formData) => postForm('/login', formData),
     signup: (role, formData) => postForm(`/signup/${role}`, formData),
     logout: () => get('/logout'),
-    me: () => get('/api/me'), // requires a backend endpoint; will be shimmed if missing
+    me: () => get('/api/me'),
 
     // doctor
     setAvailability: (available, free_at) => {
@@ -58,13 +77,21 @@ const api = (() => {
   };
 })();
 
-// Polyfill frontend shims if some endpoints are missing
+const api = window.api;
+
+// Polyfill frontend shims if some endpoints are missing or unauthorized
 (async function ensureShims(){
   try {
-    const me = await api.me();
-    if (me && me.role) return; // ok
-    window.api.me = async () => ({ role: 'patient', name: 'Guest', avatar: '', availability: 0 });
-  } catch {
-    window.api.me = async () => ({ role: 'patient', name: 'Guest', avatar: '', availability: 0 });
+    const meResp = await api.me();
+    if (meResp && meResp.role) return; // already a valid profile
+    if (meResp && meResp.ok === false) {
+      window.api.me = async () => ({ role: 'guest', name: 'Guest', avatar: '', availability: 0 });
+      return;
+    }
+    if (!meResp || !meResp.role) {
+      window.api.me = async () => ({ role: 'guest', name: 'Guest', avatar: '', availability: 0 });
+    }
+  } catch (e) {
+    window.api.me = async () => ({ role: 'guest', name: 'Guest', avatar: '', availability: 0 });
   }
 })();
