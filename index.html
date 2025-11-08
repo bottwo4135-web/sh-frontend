@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in">Connecting Patients and Doctors, Seamlessly.</h1>
+    <p class="fade-in delay-1">Secure chat, availability, and virtual assistance — all in one place.</p>
+    <div class="cta fade-in delay-2">
+      <a class="btn primary" href="{{ url_for('signup', role='patient') }}">Sign up as Patient</a>
+      <a class="btn secondary" href="{{ url_for('signup', role='doctor') }}">Sign up as Doctor</a>
+      <a class="btn ghost" href="{{ url_for('login') }}">Login</a>
+    </div>
+  </div>
+  <div class="hero-illustration float">
+    <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1200&auto=format&fit=crop" alt="hospital"/>
+  </div>
+</section>
+<section class="features">
+  <div class="feature-card slide-up">
+    <h3>Real-time Chat</h3>
+    <p>Stay connected with your healthcare providers using continuous updates.</p>
+  </div>
+  <div class="feature-card slide-up delay-1">
+    <h3>Doctor Availability</h3>
+    <p>View availability and book the best time to chat.</p>
+  </div>
+  <div class="feature-card slide-up delay-2">
+    <h3>AI Health Assistant</h3>
+    <p>Get general health guidance instantly from our AI assistant.</p>
+  </div>
+</section>
+{% endblock %}
